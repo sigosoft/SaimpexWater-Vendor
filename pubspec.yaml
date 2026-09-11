@@ -67,6 +67,7 @@ flutter:
     - lib/Assets/Images/selfpickup_icon.png
     - lib/Assets/Images/shop_open.png
     - lib/Assets/Images/Water_can19L.png
+    - lib/Assets/Images/profile_image.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

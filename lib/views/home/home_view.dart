@@ -3,8 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:saimpexwater_vendorapp/core/constants/app_assets.dart';
 import 'package:saimpexwater_vendorapp/core/constants/app_colors.dart';
 import 'package:saimpexwater_vendorapp/models/home_order.dart';
+import 'package:saimpexwater_vendorapp/views/account/account_view.dart';
+import 'package:saimpexwater_vendorapp/views/chat/chat_view.dart';
+import 'package:saimpexwater_vendorapp/views/chat/messages_list_view.dart';
 import 'package:saimpexwater_vendorapp/views/home/pause_subscription_sheet.dart';
 import 'package:saimpexwater_vendorapp/views/home/reject_order_sheet.dart';
+import 'package:saimpexwater_vendorapp/views/inventory/inventory_view.dart';
+import 'package:saimpexwater_vendorapp/views/notifications/notifications_view.dart';
 import 'package:saimpexwater_vendorapp/views/order_details/order_details_view.dart';
 import 'package:saimpexwater_vendorapp/views/subscription_calendar/subscription_calendar_view.dart';
 import 'package:saimpexwater_vendorapp/views/subscription_details/subscription_details_view.dart';
@@ -303,6 +308,11 @@ class _HomeViewState extends State<HomeView> {
     super.dispose();
   }
 
+  void _onBottomNavSelect(int index) {
+    if (index == bottomNavIndex) return;
+    setState(() => bottomNavIndex = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -310,84 +320,129 @@ class _HomeViewState extends State<HomeView> {
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF7F7F7),
+        backgroundColor: AppColors.backgroundBottom,
         body: Column(
           children: [
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  Container(
-                    color: const Color(0xFFFFF3EC),
-                    padding: EdgeInsets.only(
-                      top: MediaQuery.paddingOf(context).top + 8,
-                      left: 16,
-                      right: 16,
-                      bottom: 12,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 320),
+                reverseDuration: const Duration(milliseconds: 220),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final fade = CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOut,
+                  );
+                  final slide = Tween<Offset>(
+                    begin: const Offset(0.035, 0),
+                    end: Offset.zero,
+                  ).animate(fade);
+                  return FadeTransition(
+                    opacity: fade,
+                    child: SlideTransition(
+                      position: slide,
+                      child: child,
                     ),
-                    child: const _Header(),
+                  );
+                },
+                layoutBuilder: (currentChild, previousChildren) {
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ...previousChildren,
+                      if (currentChild != null) currentChild,
+                    ],
+                  );
+                },
+                child: KeyedSubtree(
+                  key: ValueKey<int>(
+                    bottomNavIndex <= 1 ? 0 : bottomNavIndex,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _StoreStatusCard(
-                          isOpen: isStoreOpen,
-                          onToggle: (v) => setState(() => isStoreOpen = v),
-                        ),
-                        const SizedBox(height: 12),
-                        const _MetricsGrid(),
-                        const SizedBox(height: 16),
-                        const _TotalsRow(),
-                        const SizedBox(height: 18),
-                        const _OrdersHeader(),
-                        const SizedBox(height: 12),
-                        if (isSubscriptionTab || selectedFilterIndex == 0) ...[
-                          _OrderTypeTabs(
-                            selectedIndex: selectedTabIndex,
-                            onSelect: _selectOrderType,
-                          ),
-                          const SizedBox(height: 14),
-                        ],
-                        _SearchBlock(
-                          controller: searchController,
-                          showSubscriptionCalendar:
-                              !isSubscriptionTab && selectedFilterIndex == 0,
-                        ),
-                        const SizedBox(height: 12),
-                        _StatusFilters(
-                          filters: activeFilters,
-                          selectedIndex: selectedFilterIndex,
-                          onSelect: (i) =>
-                              setState(() => selectedFilterIndex = i),
-                        ),
-                        const SizedBox(height: 12),
-                        if (isSubscriptionTab)
-                          for (final order in filteredSubscriptionOrders)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _SubscriptionOrderCard(order: order),
-                            )
-                        else
-                          for (final order in filteredOrders)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _OrderCard(order: order),
-                            ),
-                      ],
-                    ),
-                  ),
-                ],
+                  child: switch (bottomNavIndex) {
+                    0 || 1 => _buildHomeOrdersTab(context),
+                    2 => const MessagesListView(embedded: true),
+                    3 => const InventoryView(embedded: true),
+                    _ => const AccountView(embedded: true),
+                  },
+                ),
               ),
             ),
             _BottomNav(
               selectedIndex: bottomNavIndex,
-              onSelect: (i) => setState(() => bottomNavIndex = i),
+              onSelect: _onBottomNavSelect,
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHomeOrdersTab(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Container(
+          color: AppColors.languageChip,
+          padding: EdgeInsets.only(
+            top: MediaQuery.paddingOf(context).top + 8,
+            left: 16,
+            right: 16,
+            bottom: 12,
+          ),
+          child: const _Header(),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _StoreStatusCard(
+                isOpen: isStoreOpen,
+                onToggle: (v) => setState(() => isStoreOpen = v),
+              ),
+              const SizedBox(height: 12),
+              const _MetricsGrid(),
+              const SizedBox(height: 16),
+              const _TotalsRow(),
+              const SizedBox(height: 18),
+              const _OrdersHeader(),
+              const SizedBox(height: 12),
+              if (isSubscriptionTab || selectedFilterIndex == 0) ...[
+                _OrderTypeTabs(
+                  selectedIndex: selectedTabIndex,
+                  onSelect: _selectOrderType,
+                ),
+                const SizedBox(height: 14),
+              ],
+              _SearchBlock(
+                controller: searchController,
+                showSubscriptionCalendar:
+                    !isSubscriptionTab && selectedFilterIndex == 0,
+              ),
+              const SizedBox(height: 12),
+              _StatusFilters(
+                filters: activeFilters,
+                selectedIndex: selectedFilterIndex,
+                onSelect: (i) => setState(() => selectedFilterIndex = i),
+              ),
+              const SizedBox(height: 12),
+              if (isSubscriptionTab)
+                for (final order in filteredSubscriptionOrders)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _SubscriptionOrderCard(order: order),
+                  )
+              else
+                for (final order in filteredOrders)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _OrderCard(order: order),
+                  ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -423,23 +478,33 @@ class _Header extends StatelessWidget {
           child: Text(
             'Welcome to Saimpex Vendor!',
             style: TextStyle(
-              color: Color(0xFF1F1F1F),
+              color: AppColors.textDark,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
         ),
-        Container(
-          width: 40,
-          height: 40,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.notifications_none_rounded,
-            color: Color(0xFF444444),
-            size: 22,
+        InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const NotificationsView(),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.notifications_none_rounded,
+              color: AppColors.paymentDivider,
+              size: 22,
+            ),
           ),
         ),
       ],
@@ -453,8 +518,8 @@ class _StoreStatusCard extends StatelessWidget {
   final bool isOpen;
   final ValueChanged<bool> onToggle;
 
-  static const Color _iconGreen = Color(0xFF006D3C);
-  static const Color _iconBg = Color(0xFFE4F9E8);
+  static const Color _iconGreen = AppColors.iconGreen;
+  static const Color _iconBg = AppColors.iconGreenBg;
 
   @override
   Widget build(BuildContext context) {
@@ -728,9 +793,9 @@ class _MetricCard extends StatelessWidget {
 class _TotalsRow extends StatelessWidget {
   const _TotalsRow();
 
-  static const Color _labelColor = Color(0xFF7A6E67);
-  static const Color _valueColor = Color(0xFF1A1A1A);
-  static const Color _dividerColor = Color(0xFFE8D5C8);
+  static const Color _labelColor = AppColors.homeLabel;
+  static const Color _valueColor = AppColors.homeValue;
+  static const Color _dividerColor = AppColors.homeDivider;
 
   @override
   Widget build(BuildContext context) {
@@ -1225,23 +1290,23 @@ class _OrderCard extends StatelessWidget {
   final HomeOrder order;
 
   // Matched to design screenshot
-  static const Color _orange = Color(0xFFFF5E21);
-  static const Color _selfPickupBlue = Color(0xFF2F80ED);
-  static const Color _nameColor = Color(0xFF1E212C);
-  static const Color _metaGray = Color(0xFF8E8E8E);
-  static const Color _avatarBg = Color(0xFFFFE9E9);
-  static const Color _avatarLetter = Color(0xFFC62828);
-  static const Color _newBadge = Color(0xFFF2A000);
-  static const Color _acceptedBadge = Color(0xFF2EAD5B);
-  static const Color _preparingBadge = Color(0xFFFF8A00);
-  static const Color _readyBadge = Color(0xFF2EAD5B);
-  static const Color _chipBg = Color(0xFFFFF8F3);
-  static const Color _chipBorder = Color(0xFFFFE0D0);
-  static const Color _rejectBorder = Color(0xFFE0E0E0);
-  static const Color _scheduledBg = Color(0xFFE8F1FF);
-  static const Color _scheduledBlue = Color(0xFF2F80ED);
-  static const Color _partnerBg = Color(0xFFF3E8FF);
-  static const Color _partnerPurple = Color(0xFF7B5CFF);
+  static const Color _orange = AppColors.primaryOrange;
+  static const Color _selfPickupBlue = AppColors.selfPickupBlue;
+  static const Color _nameColor = AppColors.textDark;
+  static const Color _metaGray = AppColors.textSecondary;
+  static const Color _avatarBg = AppColors.avatarPinkAlt;
+  static const Color _avatarLetter = AppColors.avatarText;
+  static const Color _newBadge = AppColors.newBadge;
+  static const Color _acceptedBadge = AppColors.activeGreen;
+  static const Color _preparingBadge = AppColors.preparingOrange;
+  static const Color _readyBadge = AppColors.activeGreen;
+  static const Color _chipBg = AppColors.orangeChipBg;
+  static const Color _chipBorder = AppColors.orangeChipBorder;
+  static const Color _rejectBorder = AppColors.fieldBorder;
+  static const Color _scheduledBg = AppColors.scheduledBg;
+  static const Color _scheduledBlue = AppColors.scheduledBlue;
+  static const Color _partnerBg = AppColors.partnerBg;
+  static const Color _partnerPurple = AppColors.partnerPurple;
 
   (String, Color) get _statusBadge {
     return switch (order.status) {
@@ -1250,7 +1315,7 @@ class _OrderCard extends StatelessWidget {
       HomeOrderStatus.preparing => ('PREPARING', _preparingBadge),
       HomeOrderStatus.ready => ('READY', _readyBadge),
       HomeOrderStatus.delivered => ('DELIVERED', _readyBadge),
-      HomeOrderStatus.cancelled => ('CANCELLED', const Color(0xFF9E9E9E)),
+      HomeOrderStatus.cancelled => ('CANCELLED', AppColors.cancelledGray),
     };
   }
 
@@ -1750,18 +1815,18 @@ class _SubscriptionOrderCard extends StatelessWidget {
 
   final SubscriptionOrder order;
 
-  static const Color _orange = Color(0xFFFF5E21);
-  static const Color _selfPickupBlue = Color(0xFF2F80ED);
-  static const Color _nameColor = Color(0xFF1E212C);
-  static const Color _metaGray = Color(0xFF8E8E8E);
-  static const Color _avatarBg = Color(0xFFFFE9E9);
-  static const Color _avatarLetter = Color(0xFFC62828);
-  static const Color _newBadge = Color(0xFFF2A000);
-  static const Color _activeBadge = Color(0xFF2EAD5B);
-  static const Color _planBg = Color(0xFFEEEAFF);
-  static const Color _planPurple = Color(0xFF6C63FF);
-  static const Color _pausedAmber = Color(0xFFF5A623);
-  static const Color _rejectBorder = Color(0xFFE0E0E0);
+  static const Color _orange = AppColors.primaryOrange;
+  static const Color _selfPickupBlue = AppColors.selfPickupBlue;
+  static const Color _nameColor = AppColors.textDark;
+  static const Color _metaGray = AppColors.textSecondary;
+  static const Color _avatarBg = AppColors.avatarPinkAlt;
+  static const Color _avatarLetter = AppColors.avatarText;
+  static const Color _newBadge = AppColors.newBadge;
+  static const Color _activeBadge = AppColors.activeGreen;
+  static const Color _planBg = AppColors.planPurpleAlt;
+  static const Color _planPurple = AppColors.planPurple;
+  static const Color _pausedAmber = AppColors.pausedAmberAlt;
+  static const Color _rejectBorder = AppColors.fieldBorder;
 
   bool get _isActive => order.status == SubscriptionOrderStatus.active;
   bool get _isPaused => order.status == SubscriptionOrderStatus.paused;
@@ -1771,7 +1836,7 @@ class _SubscriptionOrderCard extends StatelessWidget {
       SubscriptionOrderStatus.newOrder => ('NEW', _newBadge),
       SubscriptionOrderStatus.active => ('ACTIVE', _activeBadge),
       SubscriptionOrderStatus.paused => ('PAUSED', _orange),
-      SubscriptionOrderStatus.cancelled => ('CANCELLED', const Color(0xFF9E9E9E)),
+      SubscriptionOrderStatus.cancelled => ('CANCELLED', AppColors.cancelledGray),
     };
   }
 
@@ -1985,7 +2050,8 @@ class _SubscriptionOrderCard extends StatelessWidget {
                   child: SizedBox(
                     height: 46,
                     child: OutlinedButton(
-                      onPressed: () {},
+                      onPressed: () =>
+                          ChatView.open(context, customerName: order.customerName),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: _orange,
                         backgroundColor: Colors.white,
@@ -2106,7 +2172,10 @@ class _SubscriptionOrderCard extends StatelessWidget {
                     child: SizedBox(
                       height: 46,
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () => ChatView.open(
+                          context,
+                          customerName: order.customerName,
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: _orange,
                           backgroundColor: Colors.white,
@@ -2183,7 +2252,8 @@ class _SubscriptionOrderCard extends StatelessWidget {
                 width: double.infinity,
                 height: 46,
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () =>
+                      ChatView.open(context, customerName: order.customerName),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _orange,
                     backgroundColor: Colors.white,
@@ -2461,38 +2531,59 @@ class _BottomNav extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (selected)
-                        Container(
-                          width: 40,
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFF5E21),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            icons[index],
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                        )
-                      else
-                        Icon(
-                          icons[index],
-                          color: const Color(0xFF9E9E9E),
-                          size: 24,
-                        ),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        switchInCurve: Curves.easeOutBack,
+                        switchOutCurve: Curves.easeIn,
+                        transitionBuilder: (child, animation) {
+                          return ScaleTransition(
+                            scale: animation,
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: selected
+                            ? Container(
+                                key: const ValueKey('selected'),
+                                width: 40,
+                                height: 40,
+                                alignment: Alignment.center,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primaryOrange,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  icons[index],
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                              )
+                            : SizedBox(
+                                key: const ValueKey('idle'),
+                                width: 40,
+                                height: 40,
+                                child: Icon(
+                                  icons[index],
+                                  color: AppColors.navInactive,
+                                  size: 24,
+                                ),
+                              ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(
-                        labels[index],
+                      AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight:
                               selected ? FontWeight.w700 : FontWeight.w500,
                           color: selected
-                              ? const Color(0xFFFF5E21)
-                              : const Color(0xFF9E9E9E),
+                              ? AppColors.primaryOrange
+                              : AppColors.navInactive,
                         ),
+                        child: Text(labels[index]),
                       ),
                     ],
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:saimpexwater_vendorapp/core/constants/app_colors.dart';
 
 /// Shows the Pause Subscription bottom sheet. Returns the selected reason, or null.
 Future<String?> showPauseSubscriptionSheet(BuildContext context) {
@@ -20,8 +21,8 @@ class PauseSubscriptionSheet extends StatefulWidget {
 }
 
 class _PauseSubscriptionSheetState extends State<PauseSubscriptionSheet> {
-  static const Color _orange = Color(0xFFFF5722);
-  static const Color _border = Color(0xFFE0E0E0);
+  static const Color _orange = AppColors.primaryOrange;
+  static const Color _border = AppColors.fieldBorder;
   static const int _otherMaxLength = 100;
   static const int _otherIndex = 4;
 
@@ -101,7 +102,7 @@ class _PauseSubscriptionSheetState extends State<PauseSubscriptionSheet> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFD0D0D0)),
+                        border: Border.all(color: AppColors.borderMuted),
                       ),
                       child: const Icon(
                         Icons.close,
@@ -126,7 +127,7 @@ class _PauseSubscriptionSheetState extends State<PauseSubscriptionSheet> {
               const Text(
                 'Reason For Pausing',
                 style: TextStyle(
-                  color: Color(0xFF333333),
+                  color: AppColors.textBody,
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
                 ),
@@ -148,7 +149,7 @@ class _PauseSubscriptionSheetState extends State<PauseSubscriptionSheet> {
                       child: Text(
                         'Other Reason',
                         style: TextStyle(
-                          color: Color(0xFF333333),
+                          color: AppColors.textBody,
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                         ),
@@ -157,7 +158,7 @@ class _PauseSubscriptionSheetState extends State<PauseSubscriptionSheet> {
                     Text(
                       '${otherController.text.length} / $_otherMaxLength',
                       style: const TextStyle(
-                        color: Color(0xFF9E9E9E),
+                        color: AppColors.textMuted,
                         fontWeight: FontWeight.w400,
                         fontSize: 12.5,
                       ),
@@ -175,22 +176,22 @@ class _PauseSubscriptionSheetState extends State<PauseSubscriptionSheet> {
                     LengthLimitingTextInputFormatter(_otherMaxLength),
                   ],
                   style: const TextStyle(
-                    color: Color(0xFF1A1A1A),
+                    color: AppColors.homeValue,
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
                   ),
                   decoration: InputDecoration(
                     counterText: '',
                     filled: true,
-                    fillColor: const Color(0xFFF3F3F3),
+                    fillColor: AppColors.inputFill,
                     contentPadding: const EdgeInsets.all(14),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      borderSide: const BorderSide(color: AppColors.fieldBorder),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFD0D0D0)),
+                      borderSide: const BorderSide(color: AppColors.borderMuted),
                     ),
                   ),
                 ),
@@ -204,7 +205,7 @@ class _PauseSubscriptionSheetState extends State<PauseSubscriptionSheet> {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF333333),
+                          foregroundColor: AppColors.textBody,
                           backgroundColor: Colors.white,
                           side: const BorderSide(color: _border),
                           shape: RoundedRectangleBorder(
@@ -289,8 +290,8 @@ class _PauseReasonTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  static const Color _orange = Color(0xFFFF5722);
-  static const Color _border = Color(0xFFE0E0E0);
+  static const Color _orange = AppColors.primaryOrange;
+  static const Color _border = AppColors.fieldBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +319,7 @@ class _PauseReasonTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: selected ? _orange : const Color(0xFFBDBDBD),
+                    color: selected ? _orange : AppColors.unselectedGray,
                     width: 2,
                   ),
                 ),
@@ -339,7 +340,7 @@ class _PauseReasonTile extends StatelessWidget {
                 child: Text(
                   label,
                   style: const TextStyle(
-                    color: Color(0xFF1A1A1A),
+                    color: AppColors.homeValue,
                     fontWeight: FontWeight.w500,
                     fontSize: 14.5,
                   ),

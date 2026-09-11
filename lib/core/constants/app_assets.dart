@@ -18,4 +18,7 @@ class AppAssets {
 
   /// 19L water can product image.
   static const String waterCan19L = 'lib/Assets/Images/Water_can19L.png';
+
+  /// Vendor / pharmacy profile mark used on Account screen.
+  static const String profileImage = 'lib/Assets/Images/profile_image.png';
 }
