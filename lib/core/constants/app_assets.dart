@@ -21,4 +21,15 @@ class AppAssets {
 
   /// Vendor / pharmacy profile mark used on Account screen.
   static const String profileImage = 'lib/Assets/Images/profile_image.png';
+
+  /// Delivery boy profile portraits.
+  static const String deliveryBoy1 = 'lib/Assets/Images/delivery_boy1.png';
+  static const String deliveryBoy2 = 'lib/Assets/Images/delivery_boy2.png';
+  static const String deliveryBoy3 = 'lib/Assets/Images/delivery_boy3.png';
+
+  /// Bottom navigation icons.
+  static const String ordersIcon = 'lib/Assets/Images/orders_icon.png';
+  static const String chatIcon = 'lib/Assets/Images/chat_icon.png';
+  static const String inventoryIcon = 'lib/Assets/Images/inventory_icon.png';
+  static const String accountIcon = 'lib/Assets/Images/account_icon.png';
 }

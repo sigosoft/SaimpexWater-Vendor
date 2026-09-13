@@ -192,6 +192,28 @@ class _HomeViewState extends State<HomeView> {
       isOnlinePayment: true,
       status: HomeOrderStatus.delivered,
     ),
+    HomeOrder(
+      customerName: 'Ahmed',
+      orderType: 'Delivery',
+      orderId: '#22789008',
+      timeAgo: '1 hr ago',
+      itemLabel: '1 Bottle (19L) • 80 MRU',
+      paymentLabel: 'Online Payment',
+      isDelivery: true,
+      isOnlinePayment: true,
+      status: HomeOrderStatus.cancelled,
+    ),
+    HomeOrder(
+      customerName: 'Ahmed',
+      orderType: 'Self Pickup',
+      orderId: '#22789009',
+      timeAgo: '3 hr ago',
+      itemLabel: '1 Bottle (19L) • 80 MRU',
+      paymentLabel: 'Cash on Delivery',
+      isDelivery: false,
+      isOnlinePayment: false,
+      status: HomeOrderStatus.cancelled,
+    ),
   ];
 
   final subscriptionOrders = const <SubscriptionOrder>[
@@ -264,6 +286,18 @@ class _HomeViewState extends State<HomeView> {
       pausedByVendor: true,
       status: SubscriptionOrderStatus.paused,
     ),
+    SubscriptionOrder(
+      customerName: 'Mariem Mint Sidi',
+      productLabel: 'Drinking Water 19L ×1',
+      orderId: '#22789010',
+      timeAgo: '1 day ago',
+      isDelivery: true,
+      planName: 'Daily',
+      planRange: 'Start Jul-01-2026 - End Jul-31-2026',
+      timeSlot: '8-10 AM',
+      estimatedValue: '5,000 MRU',
+      status: SubscriptionOrderStatus.cancelled,
+    ),
   ];
 
   bool get isSubscriptionTab => selectedTabIndex == 1;
@@ -272,7 +306,8 @@ class _HomeViewState extends State<HomeView> {
       isSubscriptionTab ? subscriptionFilters : filters;
 
   List<HomeOrder> get filteredOrders {
-    final status = switch (selectedFilterIndex) {
+    final index = selectedFilterIndex.clamp(0, filters.length - 1);
+    final status = switch (index) {
       0 => HomeOrderStatus.newOrder,
       1 => HomeOrderStatus.accepted,
       2 => HomeOrderStatus.preparing,
@@ -285,7 +320,9 @@ class _HomeViewState extends State<HomeView> {
   }
 
   List<SubscriptionOrder> get filteredSubscriptionOrders {
-    final status = switch (selectedFilterIndex) {
+    final index =
+        selectedFilterIndex.clamp(0, subscriptionFilters.length - 1);
+    final status = switch (index) {
       0 => SubscriptionOrderStatus.newOrder,
       1 => SubscriptionOrderStatus.active,
       2 => SubscriptionOrderStatus.paused,
@@ -310,7 +347,15 @@ class _HomeViewState extends State<HomeView> {
 
   void _onBottomNavSelect(int index) {
     if (index == bottomNavIndex) return;
-    setState(() => bottomNavIndex = index);
+    setState(() {
+      bottomNavIndex = index;
+      // Keep Home/Orders on New Orders so the list is never stuck on an
+      // empty Cancelled filter after hot reload or tab switches.
+      if (index <= 1) {
+        selectedTabIndex = 0;
+        selectedFilterIndex = 0;
+      }
+    });
   }
 
   @override
@@ -423,16 +468,22 @@ class _HomeViewState extends State<HomeView> {
               const SizedBox(height: 12),
               _StatusFilters(
                 filters: activeFilters,
-                selectedIndex: selectedFilterIndex,
+                selectedIndex:
+                    selectedFilterIndex.clamp(0, activeFilters.length - 1),
                 onSelect: (i) => setState(() => selectedFilterIndex = i),
               ),
               const SizedBox(height: 12),
               if (isSubscriptionTab)
-                for (final order in filteredSubscriptionOrders)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _SubscriptionOrderCard(order: order),
-                  )
+                if (filteredSubscriptionOrders.isEmpty)
+                  const _EmptyOrders(message: 'No subscription orders here')
+                else
+                  for (final order in filteredSubscriptionOrders)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _SubscriptionOrderCard(order: order),
+                    )
+              else if (filteredOrders.isEmpty)
+                const _EmptyOrders(message: 'No orders here')
               else
                 for (final order in filteredOrders)
                   Padding(
@@ -443,6 +494,54 @@ class _HomeViewState extends State<HomeView> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _EmptyOrders extends StatelessWidget {
+  const _EmptyOrders({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF0F0F0)),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 36,
+            color: AppColors.textHint,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Try another status filter above',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textHint,
+              fontWeight: FontWeight.w400,
+              fontSize: 12.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2508,16 +2607,28 @@ class _BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const labels = ['Home', 'Orders', 'Chat', 'Inventory', 'Account'];
-    const icons = [
-      Icons.home_rounded,
-      Icons.assignment_outlined,
-      Icons.chat_bubble_outline_rounded,
-      Icons.shopping_cart_outlined,
-      Icons.person_outline_rounded,
+    const assetIcons = <String?>[
+      null, // Home keeps Material icon
+      AppAssets.ordersIcon,
+      AppAssets.chatIcon,
+      AppAssets.inventoryIcon,
+      AppAssets.accountIcon,
     ];
 
     return Container(
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
       child: SafeArea(
         top: false,
         child: Padding(
@@ -2525,11 +2636,13 @@ class _BottomNav extends StatelessWidget {
           child: Row(
             children: List.generate(5, (index) {
               final selected = selectedIndex == index;
+              final asset = assetIcons[index];
               return Expanded(
                 child: InkWell(
                   onTap: () => onSelect(index),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 220),
@@ -2554,20 +2667,24 @@ class _BottomNav extends StatelessWidget {
                                   color: AppColors.primaryOrange,
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(
-                                  icons[index],
+                                child: _NavIcon(
+                                  asset: asset,
+                                  fallback: Icons.home_rounded,
                                   color: Colors.white,
-                                  size: 22,
+                                  size: 24,
                                 ),
                               )
                             : SizedBox(
                                 key: const ValueKey('idle'),
                                 width: 40,
                                 height: 40,
-                                child: Icon(
-                                  icons[index],
-                                  color: AppColors.navInactive,
-                                  size: 24,
+                                child: Center(
+                                  child: _NavIcon(
+                                    asset: asset,
+                                    fallback: Icons.home_rounded,
+                                    color: AppColors.navInactive,
+                                    size: asset == null ? 28 : 24,
+                                  ),
                                 ),
                               ),
                       ),
@@ -2583,7 +2700,12 @@ class _BottomNav extends StatelessWidget {
                               ? AppColors.primaryOrange
                               : AppColors.navInactive,
                         ),
-                        child: Text(labels[index]),
+                        child: Text(
+                          labels[index],
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
@@ -2592,6 +2714,38 @@ class _BottomNav extends StatelessWidget {
             }),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NavIcon extends StatelessWidget {
+  const _NavIcon({
+    required this.asset,
+    required this.fallback,
+    required this.color,
+    required this.size,
+  });
+
+  final String? asset;
+  final IconData fallback;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (asset == null) {
+      return Icon(fallback, color: color, size: size);
+    }
+
+    return ColorFiltered(
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      child: Image.asset(
+        asset!,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => Icon(fallback, color: color, size: size),
       ),
     );
   }

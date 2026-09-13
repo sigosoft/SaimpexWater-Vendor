@@ -15,4 +15,8 @@ abstract class AppRoutes {
   static const String receivedPayouts = '/received-payouts';
   static const String coupons = '/coupons';
   static const String addCoupon = '/add-coupon';
+  static const String deliveryBoys = '/delivery-boys';
+  static const String helpSupport = '/help-support';
+  static const String termsConditions = '/terms-conditions';
+  static const String privacySecurity = '/privacy-security';
 }

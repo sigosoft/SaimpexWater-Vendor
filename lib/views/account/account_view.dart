@@ -9,6 +9,10 @@ import 'package:saimpexwater_vendorapp/views/account/leave_management_view.dart'
 import 'package:saimpexwater_vendorapp/views/account/earnings_view.dart';
 import 'package:saimpexwater_vendorapp/views/account/received_payouts_view.dart';
 import 'package:saimpexwater_vendorapp/views/account/coupons_view.dart';
+import 'package:saimpexwater_vendorapp/views/account/delivery_boys_view.dart';
+import 'package:saimpexwater_vendorapp/views/account/help_support_view.dart';
+import 'package:saimpexwater_vendorapp/views/account/terms_conditions_view.dart';
+import 'package:saimpexwater_vendorapp/views/account/privacy_security_view.dart';
 
 class AccountView extends StatefulWidget {
   const AccountView({super.key, this.embedded = false});
@@ -122,9 +126,10 @@ class _AccountViewState extends State<AccountView> {
                     title: 'Coupons',
                     onTap: () => CouponsView.open(context),
                   ),
-                  const _SettingsTile(
+                  _SettingsTile(
                     icon: Icons.delivery_dining_outlined,
                     title: 'Delivery Boys',
+                    onTap: () => DeliveryBoysView.open(context),
                     showDivider: false,
                   ),
                 ],
@@ -132,19 +137,22 @@ class _AccountViewState extends State<AccountView> {
               const SizedBox(height: 18),
               const _SectionLabel('Support & Legal'),
               const SizedBox(height: 10),
-              const _SettingsCard(
+              _SettingsCard(
                 children: [
                   _SettingsTile(
                     icon: Icons.help_outline_rounded,
                     title: 'Help & Support',
+                    onTap: () => HelpSupportView.open(context),
                   ),
                   _SettingsTile(
                     icon: Icons.description_outlined,
                     title: 'Terms & Conditions',
+                    onTap: () => TermsConditionsView.open(context),
                   ),
                   _SettingsTile(
                     icon: Icons.privacy_tip_outlined,
                     title: 'Privacy Policy',
+                    onTap: () => PrivacySecurityView.open(context),
                     showDivider: false,
                   ),
                 ],
