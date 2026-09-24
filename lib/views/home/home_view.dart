@@ -349,9 +349,8 @@ class _HomeViewState extends State<HomeView> {
     if (index == bottomNavIndex) return;
     setState(() {
       bottomNavIndex = index;
-      // Keep Home/Orders on New Orders so the list is never stuck on an
-      // empty Cancelled filter after hot reload or tab switches.
-      if (index <= 1) {
+      if (index == 1) {
+        // Orders screen is one-time orders only (matches design).
         selectedTabIndex = 0;
         selectedFilterIndex = 0;
       }
@@ -370,21 +369,21 @@ class _HomeViewState extends State<HomeView> {
           children: [
             Expanded(
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 320),
-                reverseDuration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
+                duration: const Duration(milliseconds: 360),
+                reverseDuration: const Duration(milliseconds: 280),
+                switchInCurve: Curves.easeInOutCubic,
+                switchOutCurve: Curves.easeInOutCubic,
                 transitionBuilder: (child, animation) {
-                  final fade = CurvedAnimation(
+                  final curved = CurvedAnimation(
                     parent: animation,
-                    curve: Curves.easeOut,
+                    curve: Curves.easeInOutCubic,
                   );
                   final slide = Tween<Offset>(
-                    begin: const Offset(0.035, 0),
+                    begin: const Offset(0.04, 0),
                     end: Offset.zero,
-                  ).animate(fade);
+                  ).animate(curved);
                   return FadeTransition(
-                    opacity: fade,
+                    opacity: curved,
                     child: SlideTransition(
                       position: slide,
                       child: child,
@@ -401,11 +400,10 @@ class _HomeViewState extends State<HomeView> {
                   );
                 },
                 child: KeyedSubtree(
-                  key: ValueKey<int>(
-                    bottomNavIndex <= 1 ? 0 : bottomNavIndex,
-                  ),
+                  key: ValueKey<int>(bottomNavIndex),
                   child: switch (bottomNavIndex) {
-                    0 || 1 => _buildHomeOrdersTab(context),
+                    0 => _buildHomeTab(context),
+                    1 => _buildOrdersTab(context),
                     2 => const MessagesListView(embedded: true),
                     3 => const InventoryView(embedded: true),
                     _ => const AccountView(embedded: true),
@@ -423,7 +421,7 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _buildHomeOrdersTab(BuildContext context) {
+  Widget _buildHomeTab(BuildContext context) {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -451,7 +449,9 @@ class _HomeViewState extends State<HomeView> {
               const SizedBox(height: 16),
               const _TotalsRow(),
               const SizedBox(height: 18),
-              const _OrdersHeader(),
+              _OrdersHeader(
+                onSeeAll: () => _onBottomNavSelect(1),
+              ),
               const SizedBox(height: 12),
               if (isSubscriptionTab || selectedFilterIndex == 0) ...[
                 _OrderTypeTabs(
@@ -471,13 +471,15 @@ class _HomeViewState extends State<HomeView> {
                 selectedIndex:
                     selectedFilterIndex.clamp(0, activeFilters.length - 1),
                 onSelect: (i) => setState(() => selectedFilterIndex = i),
+                badgeLabel: _filterBadgeLabel,
               ),
               const SizedBox(height: 12),
               if (isSubscriptionTab)
                 if (filteredSubscriptionOrders.isEmpty)
                   const _EmptyOrders(message: 'No subscription orders here')
                 else
-                  for (final order in filteredSubscriptionOrders)
+                  for (final order
+                      in filteredSubscriptionOrders.take(3))
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _SubscriptionOrderCard(order: order),
@@ -485,7 +487,7 @@ class _HomeViewState extends State<HomeView> {
               else if (filteredOrders.isEmpty)
                 const _EmptyOrders(message: 'No orders here')
               else
-                for (final order in filteredOrders)
+                for (final order in filteredOrders.take(3))
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _OrderCard(order: order),
@@ -494,6 +496,116 @@ class _HomeViewState extends State<HomeView> {
           ),
         ),
       ],
+    );
+  }
+
+  String get _filterBadgeLabel {
+    final count = isSubscriptionTab
+        ? filteredSubscriptionOrders.length
+        : filteredOrders.length;
+    return count.toString().padLeft(2, '0');
+  }
+
+  Widget _buildOrdersTab(BuildContext context) {
+    final list = filteredOrders;
+    final filterIndex =
+        selectedFilterIndex.clamp(0, filters.length - 1);
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.backgroundTop,
+            AppColors.backgroundMid,
+            Color(0xFFF7F7F7),
+          ],
+          stops: [0, 0.18, 1],
+        ),
+      ),
+      child: Column(
+        children: [
+          SizedBox(height: MediaQuery.paddingOf(context).top + 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              height: 44,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Text(
+                    'Orders',
+                    style: TextStyle(
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 17,
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InkWell(
+                      onTap: () => _onBottomNavSelect(0),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.orangeChipBorder,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.chevron_left_rounded,
+                          color: AppColors.primaryOrange,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: _StatusFilters(
+              filters: filters,
+              selectedIndex: filterIndex,
+              onSelect: (i) => setState(() => selectedFilterIndex = i),
+              badgeLabel: list.length.toString().padLeft(2, '0'),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: list.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 0, 16, 20),
+                    child: _EmptyOrders(message: 'No orders here'),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                    itemCount: list.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      return _OrderCard(order: list[index]);
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1022,14 +1134,16 @@ class _TotalItem extends StatelessWidget {
 }
 
 class _OrdersHeader extends StatelessWidget {
-  const _OrdersHeader();
+  const _OrdersHeader({this.onSeeAll});
+
+  final VoidCallback? onSeeAll;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
+        const Text(
           'ORDERS',
           style: TextStyle(
             color: Color(0xFF000000),
@@ -1038,12 +1152,19 @@ class _OrdersHeader extends StatelessWidget {
             letterSpacing: 0.4,
           ),
         ),
-        Text(
-          'See All',
-          style: TextStyle(
-            color: Color(0xFFFF5722),
-            fontWeight: FontWeight.w600,
-            fontSize: 13.5,
+        InkWell(
+          onTap: onSeeAll,
+          borderRadius: BorderRadius.circular(8),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Text(
+              'See All',
+              style: TextStyle(
+                color: Color(0xFFFF5722),
+                fontWeight: FontWeight.w600,
+                fontSize: 13.5,
+              ),
+            ),
           ),
         ),
       ],
@@ -1281,11 +1402,13 @@ class _StatusFilters extends StatelessWidget {
     required this.filters,
     required this.selectedIndex,
     required this.onSelect,
+    this.badgeLabel = '02',
   });
 
   final List<String> filters;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
+  final String badgeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -1294,14 +1417,12 @@ class _StatusFilters extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
-        padding: const EdgeInsets.only(top: 4, right: 4),
+        padding: const EdgeInsets.only(top: 4, right: 16),
         itemCount: filters.length,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final selected = selectedIndex == index;
-          final showBadge = filters.contains('Accepted')
-              ? index <= 4
-              : index <= 2;
+          final showBadge = selected && index == 0;
 
           return GestureDetector(
             onTap: () => onSelect(index),
@@ -1330,6 +1451,16 @@ class _StatusFilters extends StatelessWidget {
                     border: selected
                         ? null
                         : Border.all(color: const Color(0xFFE0E0E0)),
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFFFF5722)
+                                  .withValues(alpha: 0.22),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Text(
                     filters[index],
@@ -1340,7 +1471,7 @@ class _StatusFilters extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (showBadge && selected)
+                if (showBadge)
                   Positioned(
                     right: -4,
                     top: -4,
@@ -1363,12 +1494,12 @@ class _StatusFilters extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: const Text(
-                        '02',
-                        style: TextStyle(
+                      child: Text(
+                        badgeLabel,
+                        style: const TextStyle(
                           color: Color(0xFFFF9800),
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           height: 1,
                         ),
                       ),
@@ -1441,16 +1572,15 @@ class _OrderCard extends StatelessWidget {
         );
       },
       child: Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF0F0F0)),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1467,7 +1597,7 @@ class _OrderCard extends StatelessWidget {
                   order.customerName[0].toUpperCase(),
                   style: const TextStyle(
                     color: _avatarLetter,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     fontSize: 18,
                   ),
                 ),
@@ -1481,23 +1611,56 @@ class _OrderCard extends StatelessWidget {
                       order.customerName,
                       style: const TextStyle(
                         color: _nameColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
                         height: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    _OrderTypeBadge(isDelivery: order.isDelivery),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${order.orderId} • ${order.timeAgo}',
-                      softWrap: false,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _metaGray,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12.5,
+                    const SizedBox(height: 5),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _OrderTypeBadge(isDelivery: order.isDelivery),
+                          Text(
+                            ' • ',
+                            style: TextStyle(
+                              color: _metaGray.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12.5,
+                              height: 1.2,
+                            ),
+                          ),
+                          Text(
+                            order.orderId,
+                            style: const TextStyle(
+                              color: _metaGray,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 11,
+                              height: 1.2,
+                            ),
+                          ),
+                          Text(
+                            ' • ',
+                            style: TextStyle(
+                              color: _metaGray.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12.5,
+                              height: 1.2,
+                            ),
+                          ),
+                          Text(
+                            order.timeAgo,
+                            style: const TextStyle(
+                              color: _metaGray,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 11,
+                              height: 1.2,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1521,7 +1684,7 @@ class _OrderCard extends StatelessWidget {
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         letterSpacing: 0.4,
                         height: 1.1,
                       ),
@@ -1531,7 +1694,7 @@ class _OrderCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           if (order.deliveryPartnerName != null) ...[
             Container(
               width: double.infinity,
@@ -1606,7 +1769,7 @@ class _OrderCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: _scheduledBg,
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 children: [
@@ -1623,7 +1786,7 @@ class _OrderCard extends StatelessWidget {
                     'SCHEDULED',
                     style: TextStyle(
                       color: _scheduledBlue,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       fontSize: 11,
                       letterSpacing: 0.3,
                     ),
@@ -1778,54 +1941,46 @@ class _OrderTypeBadge extends StatelessWidget {
 
   final bool isDelivery;
 
+  static const _metaStyle = TextStyle(
+    fontWeight: FontWeight.w500,
+    fontSize: 11.5,
+    height: 1.2,
+  );
+
   @override
   Widget build(BuildContext context) {
     final color = isDelivery
         ? _OrderCard._orange
         : _OrderCard._selfPickupBlue;
     final label = isDelivery ? 'Delivery' : 'Self Pickup';
-    const textStyle = TextStyle(
-      fontWeight: FontWeight.w500,
-      fontSize: 12.5,
-      height: 1.2,
-    );
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (!isDelivery) ...[
-            Text('(', style: textStyle.copyWith(color: color)),
-            const SizedBox(width: 2),
-          ],
-          if (isDelivery)
-            _NeonAssetIcon(
-              asset: AppAssets.deliveryIcon,
-              size: 15,
-              fallback: Icons.delivery_dining_rounded,
-              fallbackColor: color,
-            )
-          else
-            _NeonAssetIcon(
-              asset: AppAssets.selfPickupIcon,
-              size: 18,
-              fallback: Icons.shopping_bag_outlined,
-              fallbackColor: color,
-            ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            softWrap: false,
-            style: textStyle.copyWith(color: color),
-          ),
-          if (!isDelivery) ...[
-            const SizedBox(width: 2),
-            Text(')', style: textStyle.copyWith(color: color)),
-          ],
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (!isDelivery) ...[
+          Text('(', style: _metaStyle.copyWith(color: color)),
+          const SizedBox(width: 2),
         ],
-      ),
+        _NeonAssetIcon(
+          asset: isDelivery ? AppAssets.deliveryIcon : AppAssets.selfPickupIcon,
+          size: 13,
+          fallback: isDelivery
+              ? Icons.delivery_dining_rounded
+              : Icons.shopping_bag_outlined,
+          fallbackColor: color,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          softWrap: false,
+          style: _metaStyle.copyWith(color: color),
+        ),
+        if (!isDelivery) ...[
+          const SizedBox(width: 2),
+          Text(')', style: _metaStyle.copyWith(color: color)),
+        ],
+      ],
     );
   }
 }
@@ -2016,7 +2171,7 @@ class _SubscriptionOrderCard extends StatelessWidget {
                             style: TextStyle(
                               color: typeColor,
                               fontWeight: FontWeight.w500,
-                              fontSize: 12.5,
+                              fontSize: 11.5,
                             ),
                           ),
                           const SizedBox(width: 2),
@@ -2032,13 +2187,13 @@ class _SubscriptionOrderCard extends StatelessWidget {
                             order.isDelivery
                                 ? AppAssets.deliveryIcon
                                 : AppAssets.selfPickupIcon,
-                            width: 14,
-                            height: 14,
+                            width: 13,
+                            height: 13,
                             errorBuilder: (_, _, _) => Icon(
                               order.isDelivery
                                   ? Icons.delivery_dining
                                   : Icons.shopping_bag_outlined,
-                              size: 14,
+                              size: 13,
                               color: typeColor,
                             ),
                           ),
@@ -2049,7 +2204,7 @@ class _SubscriptionOrderCard extends StatelessWidget {
                           style: TextStyle(
                             color: typeColor,
                             fontWeight: FontWeight.w500,
-                            fontSize: 12.5,
+                            fontSize: 11.5,
                           ),
                         ),
                         if (!order.isDelivery) ...[
@@ -2059,7 +2214,7 @@ class _SubscriptionOrderCard extends StatelessWidget {
                             style: TextStyle(
                               color: typeColor,
                               fontWeight: FontWeight.w500,
-                              fontSize: 12.5,
+                              fontSize: 11.5,
                             ),
                           ),
                         ],
